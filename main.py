@@ -2,6 +2,7 @@ import pygame as pg
 from OpenGL.GL import *
 import numpy as np
 import ctypes
+from OpenGL.GL.shaders import compileProgram, compileShader
 
 
 class App:
@@ -10,6 +11,11 @@ class App:
         pg.display.set_mode((640, 480), pg.OPENGL | pg.DOUBLEBUF)
         self.clock = pg.time.Clock()
         glClearColor(0.1, 0.2, 0.2, 1)
+
+        self.triangle = Triangle()
+        self.shader = self.createShader("shaders/vertex.txt", "shaders/fragment.txt")
+        glUseProgram(self.shader)
+        
         self.mainLoop()
 
     def mainLoop(self):
@@ -21,13 +27,34 @@ class App:
                     running = False
 
             glClear(GL_COLOR_BUFFER_BIT)
+
+            glUseProgram(self.shader)
+            glBindVertexArray(self.triangle.vao)
+            glDrawArrays(GL_TRIANGLES, 0, self.triangle.vertex_count)
+
             pg.display.flip()
 
             self.clock.tick(60)
         self.quit()
 
     def quit(self):
+        self.triangle.destroy()
+        glDeleteProgram(self.shader)
         pg.quit()
+
+    def createShader(self, vertexFilepath, fragmentFilepath):
+        with open(vertexFilepath, "r") as file:
+            vertex_src = file.readlines()
+
+        with open(fragmentFilepath, "r") as file:
+            fragment_src = file.readlines()
+
+        shader = compileProgram(
+            compileShader(vertex_src, GL_VERTEX_SHADER),
+            compileShader(fragment_src, GL_FRAGMENT_SHADER)
+        )
+
+        return shader
 
 
 class Triangle:
